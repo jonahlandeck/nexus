@@ -1,5 +1,6 @@
 # secrets & local data
 .env
+.dev.vars
 data/
 backend/data/
 *.db
@@ -10,8 +11,15 @@ __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
+build/
 
 # node
 node_modules/
 frontend/dist/
 *.tsbuildinfo
+
+# Cloudflare Python Worker build artifacts
+/src/app/
+/python_modules/
+/.venv-workers/
+/.wrangler/

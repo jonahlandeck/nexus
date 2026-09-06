@@ -2,11 +2,10 @@
   "name": "nexus",
   "private": true,
   "version": "0.1.0",
+  "description": "landeck.pro root site (the motherboard). Apps live in apps/<slug>/ and deploy separately.",
   "scripts": {
-    "dev": "pywrangler dev",
-    "deploy": "pywrangler deploy",
-    "d1:migrate:local": "wrangler d1 migrations apply meat-and-potatoes --local",
-    "d1:migrate:remote": "wrangler d1 migrations apply meat-and-potatoes --remote"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "^4.129.0"

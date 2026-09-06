@@ -1,0 +1,60 @@
+{
+  // Self-contained Cloudflare Python Worker for the meat-and-potatoes app.
+  // Deploy from this directory:  cd apps/meat-and-potatoes && uv run pywrangler deploy
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nexus-meat-and-potatoes",
+  "main": "src/worker.py",
+  "compatibility_date": "2026-09-06",
+  "compatibility_flags": ["python_workers"],
+
+  // Copies backend/app -> src/app before dev & deploy, because the Python Worker
+  // bundler only includes files under src/ (the dir of `main`). src/app is
+  // gitignored.
+  "build": {
+    "command": "bash scripts/stage-app.sh",
+    "watch_dir": "backend/app"
+  },
+
+  // More specific than the root site Worker's "landeck.pro/*", so this wins for
+  // its own path and the two Workers coexist.
+  "routes": [
+    { "pattern": "landeck.pro/apps/meat-and-potatoes*", "zone_name": "landeck.pro" }
+  ],
+
+  // Built Vite SPA. src/worker.py strips the "/apps/meat-and-potatoes" prefix
+  // before hitting this binding, and serves the API itself, so run it first.
+  "assets": {
+    "directory": "frontend/dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application"
+  },
+
+  // Persistence. Create it once with:
+  //   npx wrangler d1 create meat-and-potatoes
+  // then paste the printed database_id below, and apply migrations:
+  //   npx wrangler d1 migrations apply meat-and-potatoes --local   (dev)
+  //   npx wrangler d1 migrations apply meat-and-potatoes --remote  (prod)
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "meat-and-potatoes",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Non-secret config (see .env for the local values). SCRAPERAPI_KEY is a
+  // secret - set it with `npx wrangler secret put SCRAPERAPI_KEY` (and in
+  // .dev.vars for local `pywrangler dev`), never here.
+  "vars": {
+    "MAP_PROVIDER": "mock",
+    "SCRAPERAPI_TLD": "com",
+    "SEARCH_CACHE_TTL_DAYS": "7",
+    "OLLAMA_URL": "",
+    "OLLAMA_MODEL": "qwen2.5:7b-instruct",
+    "OLLAMA_TIMEOUT": "180"
+  },
+
+  "observability": { "enabled": true }
+}

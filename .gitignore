@@ -165,7 +165,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+# (/site removed - this repo uses /site for the landeck.pro root static site)
 
 # mypy
 .mypy_cache/
@@ -220,15 +220,9 @@ __marimo__/
 # --- Node / Cloudflare Worker ---
 node_modules/
 .wrangler/
-
-# --- Python Worker (pywrangler) ---
-python_modules/
-.venv-workers/
-src/vendor/
 .dev.vars
 
-# staged by scripts/stage-app.sh
-src/app/
-
-# stray per-app uv lock (root uv.lock is the real one)
+# --- Python Worker (pywrangler), any app ---
+python_modules/
+.venv-workers/
 apps/*/backend/uv.lock

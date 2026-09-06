@@ -139,7 +139,7 @@ wheels = [
 ]
 
 [[package]]
-name = "nexus"
+name = "meat-and-potatoes-worker"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

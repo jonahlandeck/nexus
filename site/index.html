@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jonah Landeck</title>
+  <meta name="description" content="Jonah Landeck — personal site and portfolio.">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #fbfbf9;
+      --fg: #1a1a1a;
+      --muted: #5b5b5b;
+      --border: #e4e4e0;
+      --accent: #b4530a;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14140f;
+        --fg: #ececec;
+        --muted: #9a9a95;
+        --border: #2c2c28;
+        --accent: #e8863a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    main {
+      max-width: 46rem;
+      margin: 0 auto;
+      padding: 14vh 1.5rem 6rem;
+    }
+    h1 { font-size: 2rem; margin: 0 0 .5rem; letter-spacing: -0.01em; }
+    p { margin: 0 0 1rem; color: var(--muted); }
+    p.lead { color: var(--fg); }
+    a { color: var(--accent); }
+    section.game {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+    section.game h2 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 0 0 1rem;
+    }
+    /* htmlgames' embed.js injects an iframe into this container */
+    .game-embed {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .game-embed :is(iframe, canvas, embed, object) {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      border: 0;
+    }
+    footer {
+      max-width: 46rem;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Hello, I'm Jonah</h1>
+    <p class="lead">
+      I build software. This site is the front door to a handful of things I've
+      made — some are full apps with their own backends, running here as
+      independent services.
+    </p>
+    <p>
+      Reach me at <a href="mailto:jlandeck927@gmail.com">jlandeck927@gmail.com</a>.
+    </p>
+
+    <section class="game">
+      <h2>Downhill Ski</h2>
+      <div class="game-embed">
+        <script src="https://cdn.htmlgames.com/embed.js?game=DownhillSki&amp;bgcolor=white"></script>
+      </div>
+      <p style="margin-top:1rem;font-size:.9rem">
+        Game by <a href="https://www.htmlgames.com/" rel="noopener">HTMLGames</a>.
+        Direct link: <a href="https://cdn.htmlgames.com/DownhillSki/" rel="noopener">cdn.htmlgames.com/DownhillSki</a>.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    &copy; <span id="y"></span> Jonah Landeck · landeck.pro
+  </footer>
+  <script>document.getElementById("y").textContent = new Date().getFullYear();</script>
+</body>
+</html>
