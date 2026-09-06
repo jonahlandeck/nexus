@@ -56,7 +56,9 @@ class MockProvider(GroceryProvider):
     name = "mock"
     uses_credits = False
 
-    def search(self, query: str, *, force: bool = False) -> list[Product]:
+    async def search(
+        self, query: str, db: object | None = None, *, force: bool = False
+    ) -> list[Product]:
         from ..planner import normalize_name
 
         norm = normalize_name(query)

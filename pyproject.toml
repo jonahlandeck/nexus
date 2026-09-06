@@ -1,0 +1,19 @@
+[project]
+name = "nexus"
+version = "0.1.0"
+description = "nexus monorepo - Python Worker deployment for apps/meat-and-potatoes"
+requires-python = ">=3.13"
+# Pure-Python / Pyodide-provided only. The FastAPI app package (app/) is not a
+# dependency - it is bundled as source: src/app is a symlink to
+# apps/meat-and-potatoes/backend/app so `import app.main` resolves in the Worker.
+dependencies = [
+    "fastapi",
+    "pydantic",
+    "httpx",
+]
+
+[dependency-groups]
+dev = [
+    "workers-py",
+    "workers-runtime-sdk",
+]

@@ -52,14 +52,16 @@ def test_consolidate_drops_pantry_items():
     assert any(k.startswith("chicken breast|") for k in keys)
 
 
-def test_generate_plan_json_uses_injected_llm():
+async def test_generate_plan_json_uses_injected_llm():
     calls = []
 
     def fake_llm(messages):
         calls.append(messages)
         return FAKE_PLAN
 
-    out = planner.generate_plan_json({"dietary_pattern": "omnivore"}, "high protein", _llm=fake_llm)
+    out = await planner.generate_plan_json(
+        {"dietary_pattern": "omnivore"}, "high protein", _llm=fake_llm
+    )
     assert out is FAKE_PLAN
     assert calls and calls[0][0]["role"] == "system"
 

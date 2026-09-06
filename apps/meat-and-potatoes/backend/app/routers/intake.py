@@ -3,10 +3,10 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 
-from ..db import get_db
-from ..models import IntakeSession, Profile
+from .. import store
+from ..config import Settings
+from ..d1 import D1, get_config, get_db
 from ..schemas import IntakeMessageIn, IntakeMessageOut
 from ..services import intake_agent, llm
 
@@ -14,53 +14,49 @@ router = APIRouter(prefix="/api/intake", tags=["intake"])
 
 
 @router.get("/{session_id}")
-def get_session(session_id: str, db: Session = Depends(get_db)) -> dict:
-    sess = db.get(IntakeSession, session_id)
+async def get_session(session_id: str, db: D1 = Depends(get_db)) -> dict:
+    sess = await store.get_intake(db, session_id)
     if sess is None:
         raise HTTPException(404, "no such intake session")
-    return {
-        "session_id": sess.id,
-        "transcript": sess.transcript,
-        "complete": sess.complete,
-    }
+    return sess
 
 
 @router.post("/message", response_model=IntakeMessageOut)
-def post_message(body: IntakeMessageIn, db: Session = Depends(get_db)) -> IntakeMessageOut:
+async def post_message(
+    body: IntakeMessageIn,
+    db: D1 = Depends(get_db),
+    cfg: Settings = Depends(get_config),
+) -> IntakeMessageOut:
     session_id = body.session_id or uuid.uuid4().hex
-    sess = db.get(IntakeSession, session_id)
-    if sess is None:
-        sess = IntakeSession(id=session_id, transcript=[], complete=False)
-        db.add(sess)
+    sess = await store.get_intake(db, session_id)
+    transcript = list(sess["transcript"]) if sess else []
 
-    prof = db.get(Profile, 1) or Profile(id=1, data={})
-    profile_data = dict(prof.data or {})
+    profile_data = await store.get_profile(db)
 
     try:
-        turn = intake_agent.next_turn(
-            transcript=list(sess.transcript or []),
+        turn = await intake_agent.next_turn(
+            transcript=transcript,
             profile=profile_data,
             user_message=body.message,
+            cfg=cfg,
         )
     except llm.LLMError as exc:
         raise HTTPException(502, str(exc)) from exc
 
     merged = intake_agent.deep_merge(profile_data, turn.get("profile_patch") or {})
-    prof.data = merged
-    if db.get(Profile, 1) is None:
-        db.add(prof)
+    await store.set_profile(db, merged)
 
-    sess.transcript = list(sess.transcript or []) + [
+    transcript = transcript + [
         {"role": "user", "content": body.message},
         {"role": "assistant", "content": turn["assistant_message"]},
     ]
-    sess.complete = bool(turn.get("complete"))
-    db.commit()
+    complete = bool(turn.get("complete"))
+    await store.save_intake(db, session_id, transcript, complete)
 
     return IntakeMessageOut(
         session_id=session_id,
         assistant_message=turn["assistant_message"],
         profile=merged,
         missing_fields=turn.get("missing_fields", []),
-        complete=sess.complete,
+        complete=complete,
     )

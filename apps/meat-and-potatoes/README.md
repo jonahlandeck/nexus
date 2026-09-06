@@ -7,9 +7,21 @@ grocery list, looks each item up on **Walmart via ScraperAPI**, and hands you a 
 
 ```
 apps/meat-and-potatoes/
-  backend/    FastAPI + SQLite  (:8000)
+  backend/    FastAPI            (:8000 local, or the Worker)
   frontend/   React + Vite      (:5173)
 ```
+
+## Deployment
+
+This app deploys to **Cloudflare Workers** (Python Worker) at
+`landeck.pro/apps/meat-and-potatoes`, with persistence on **Cloudflare D1**
+instead of SQLite. See [`../../DEPLOY.md`](../../DEPLOY.md). Local dev against the
+real Worker runtime + a local D1 is `uv run pywrangler dev` from the repo root.
+
+> The `scripts/dev.sh` / plain-uvicorn flow below predates the Workers move. The
+> app now reads its database and config from Worker bindings, so routes that
+> touch data need the Worker runtime (`pywrangler dev`); bare `uvicorn
+> app.main:app` will not serve them.
 
 ## Prerequisites
 

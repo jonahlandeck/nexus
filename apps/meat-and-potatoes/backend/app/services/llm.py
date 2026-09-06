@@ -1,8 +1,12 @@
-"""Thin client for a local Ollama server.
+"""Thin async client for an Ollama-compatible server.
 
 Exposes two calls:
-  * chat(messages)              -> plain assistant text
-  * generate_json(messages, schema) -> parsed dict, with a repair retry loop
+  * chat(messages, cfg)              -> plain assistant text
+  * generate_json(messages, cfg, schema) -> parsed dict, with a repair retry loop
+
+On Cloudflare Workers the only outbound HTTP that works is fetch-based, so this
+uses ``httpx.AsyncClient``. ``OLLAMA_URL`` must point at a host reachable from
+the edge (a localhost Ollama is not).
 """
 from __future__ import annotations
 
@@ -11,22 +15,18 @@ from typing import Any
 
 import httpx
 
-from ..config import get_settings
+from ..config import Settings, get_settings
 
 
 class LLMError(RuntimeError):
     pass
 
 
-def _client() -> httpx.Client:
-    s = get_settings()
-    return httpx.Client(base_url=s.ollama_url, timeout=httpx.Timeout(s.ollama_timeout))
-
-
-def _chat_raw(messages: list[dict[str, str]], fmt: Any | None = None) -> str:
-    s = get_settings()
+async def _chat_raw(
+    messages: list[dict[str, str]], cfg: Settings, fmt: Any | None = None
+) -> str:
     payload: dict[str, Any] = {
-        "model": s.ollama_model,
+        "model": cfg.ollama_model,
         "messages": messages,
         "stream": False,
         "options": {"temperature": 0.4},
@@ -34,34 +34,38 @@ def _chat_raw(messages: list[dict[str, str]], fmt: Any | None = None) -> str:
     if fmt is not None:
         payload["format"] = fmt
     try:
-        with _client() as c:
-            r = c.post("/api/chat", json=payload)
+        async with httpx.AsyncClient(
+            base_url=cfg.ollama_url, timeout=httpx.Timeout(cfg.ollama_timeout)
+        ) as c:
+            r = await c.post("/api/chat", json=payload)
     except httpx.HTTPError as exc:  # pragma: no cover - network dependent
         raise LLMError(
-            f"Could not reach Ollama at {s.ollama_url}. Is `ollama serve` running "
-            f"and `{s.ollama_model}` pulled?  ({exc})"
+            f"Could not reach the model server at {cfg.ollama_url}. "
+            f"({exc})"
         ) from exc
     if r.status_code != 200:
-        raise LLMError(f"Ollama returned {r.status_code}: {r.text[:400]}")
+        raise LLMError(f"Model server returned {r.status_code}: {r.text[:400]}")
     data = r.json()
     return data.get("message", {}).get("content", "")
 
 
-def chat(messages: list[dict[str, str]]) -> str:
-    return _chat_raw(messages).strip()
+async def chat(messages: list[dict[str, str]], cfg: Settings | None = None) -> str:
+    return (await _chat_raw(messages, cfg or get_settings())).strip()
 
 
-def generate_json(
+async def generate_json(
     messages: list[dict[str, str]],
+    cfg: Settings | None = None,
     schema: dict[str, Any] | None = None,
     retries: int = 2,
 ) -> dict[str, Any]:
     """Call the model asking for JSON and parse it, repairing on failure."""
+    cfg = cfg or get_settings()
     convo = list(messages)
     fmt: Any = schema if schema is not None else "json"
     last_err = ""
     for attempt in range(retries + 1):
-        raw = _chat_raw(convo, fmt=fmt)
+        raw = await _chat_raw(convo, cfg, fmt=fmt)
         parsed = _try_parse(raw)
         if parsed is not None:
             return parsed

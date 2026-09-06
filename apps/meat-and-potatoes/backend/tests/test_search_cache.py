@@ -3,8 +3,7 @@ from datetime import datetime, timedelta, timezone
 import httpx
 import respx
 
-from app.db import SessionLocal, init_db
-from app.models import SearchCache
+from app import store
 from app.services.grocery.cache import CachedWalmartSearch, cache_key
 from app.services.grocery.scraperapi import ENDPOINT, ScraperApiProvider
 
@@ -26,18 +25,17 @@ _PAYLOAD = {
 
 
 def _provider(ttl_days=7):
-    init_db()
     inner = ScraperApiProvider(api_key="test-key", tld="com")
-    return CachedWalmartSearch(inner, session_factory=SessionLocal, tld="com", ttl_days=ttl_days)
+    return CachedWalmartSearch(inner, tld="com", ttl_days=ttl_days)
 
 
 @respx.mock
-def test_second_identical_search_is_a_cache_hit():
+async def test_second_identical_search_is_a_cache_hit(d1):
     route = respx.get(ENDPOINT).mock(return_value=httpx.Response(200, json=_PAYLOAD))
     prov = _provider()
 
-    first = prov.search("ground beef")
-    second = prov.search("Ground  Beef")  # normalizes to same key
+    first = await prov.search("ground beef", d1)
+    second = await prov.search("Ground  Beef", d1)  # normalizes to same key
 
     # numeric US item id is pulled out of the product URL, not the opaque `id`
     assert first[0].item_id == "555123"
@@ -48,26 +46,28 @@ def test_second_identical_search_is_a_cache_hit():
 
 
 @respx.mock
-def test_force_refresh_bypasses_cache():
+async def test_force_refresh_bypasses_cache(d1):
     route = respx.get(ENDPOINT).mock(return_value=httpx.Response(200, json=_PAYLOAD))
     prov = _provider()
 
-    prov.search("milk")
-    prov.search("milk", force=True)
+    await prov.search("milk", d1)
+    await prov.search("milk", d1, force=True)
 
     assert route.call_count == 2
 
 
 @respx.mock
-def test_expired_row_is_refetched():
+async def test_expired_row_is_refetched(d1):
     route = respx.get(ENDPOINT).mock(return_value=httpx.Response(200, json=_PAYLOAD))
     prov = _provider(ttl_days=1)
-    prov.search("eggs")
+    await prov.search("eggs", d1)
 
-    with SessionLocal() as db:
-        row = db.get(SearchCache, cache_key("eggs", "com", 1))
-        row.fetched_at = datetime.now(timezone.utc) - timedelta(days=3)
-        db.commit()
+    stale = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+    await d1.run(
+        "UPDATE search_cache SET fetched_at = ? WHERE cache_key = ?",
+        stale,
+        cache_key("eggs", "com", 1),
+    )
 
-    prov.search("eggs")
+    await prov.search("eggs", d1)
     assert route.call_count == 2

@@ -1,22 +1,32 @@
-"""Application configuration, loaded from apps/meat-and-potatoes/.env."""
+"""Application configuration.
+
+On Cloudflare Workers there is no ``.env`` file and no ``os.environ`` for
+``[vars]`` / secrets - they arrive on the per-request ``env`` binding object.
+``get_settings(env)`` builds a :class:`Settings` from that object (falling back
+to ``os.environ`` so the code still runs under pytest / a plain uvicorn).
+"""
 from __future__ import annotations
 
-from functools import lru_cache
-from pathlib import Path
-
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-# apps/meat-and-potatoes/  (two levels up from this file's backend/app/)
-APP_ROOT = Path(__file__).resolve().parents[2]
+import os
+from dataclasses import dataclass
+from typing import Any
 
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=APP_ROOT / ".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
+def _get(env: Any, key: str, default: str = "") -> str:
+    if env is not None:
+        val = getattr(env, key, None)
+        if val is None and hasattr(env, "get"):
+            try:
+                val = env.get(key)
+            except Exception:
+                val = None
+        if val is not None:
+            return str(val)
+    return os.environ.get(key, default)
 
+
+@dataclass(frozen=True)
+class Settings:
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5:7b-instruct"
     ollama_timeout: float = 180.0
@@ -27,18 +37,25 @@ class Settings(BaseSettings):
 
     search_cache_ttl_days: int = 7
 
-    db_path: str = "backend/data/map.db"
+    # Origin allowed through CORS (the deployed SPA is same-origin, so this is
+    # only relevant for local dev against the Vite server).
     cors_origin: str = "http://localhost:5173"
 
-    @property
-    def db_url(self) -> str:
-        p = Path(self.db_path)
-        if not p.is_absolute():
-            p = APP_ROOT / p
-        p.parent.mkdir(parents=True, exist_ok=True)
-        return f"sqlite:///{p}"
 
+def get_settings(env: Any = None) -> Settings:
+    def num(key: str, default: float) -> float:
+        try:
+            return float(_get(env, key, str(default)))
+        except (TypeError, ValueError):
+            return default
 
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
+    return Settings(
+        ollama_url=_get(env, "OLLAMA_URL", "http://localhost:11434"),
+        ollama_model=_get(env, "OLLAMA_MODEL", "qwen2.5:7b-instruct"),
+        ollama_timeout=num("OLLAMA_TIMEOUT", 180.0),
+        map_provider=_get(env, "MAP_PROVIDER", "mock").lower() or "mock",
+        scraperapi_key=_get(env, "SCRAPERAPI_KEY", ""),
+        scraperapi_tld=_get(env, "SCRAPERAPI_TLD", "com"),
+        search_cache_ttl_days=int(num("SEARCH_CACHE_TTL_DAYS", 7)),
+        cors_origin=_get(env, "CORS_ORIGIN", "http://localhost:5173"),
+    )

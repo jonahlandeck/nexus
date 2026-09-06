@@ -220,4 +220,15 @@ __marimo__/
 # --- Node / Cloudflare Worker ---
 node_modules/
 .wrangler/
-worker/public/apps/
+
+# --- Python Worker (pywrangler) ---
+python_modules/
+.venv-workers/
+src/vendor/
+.dev.vars
+
+# staged by scripts/stage-app.sh
+src/app/
+
+# stray per-app uv lock (root uv.lock is the real one)
+apps/*/backend/uv.lock

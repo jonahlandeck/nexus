@@ -80,7 +80,9 @@ class ScraperApiProvider(GroceryProvider):
         self._tld = tld
         self._timeout = timeout
 
-    def search(self, query: str, *, force: bool = False) -> list[Product]:
+    async def search(
+        self, query: str, db: object | None = None, *, force: bool = False
+    ) -> list[Product]:
         params = {
             "api_key": self._api_key,
             "query": query,
@@ -88,8 +90,8 @@ class ScraperApiProvider(GroceryProvider):
             "output_format": "json",
         }
         try:
-            with httpx.Client(timeout=self._timeout) as c:
-                r = c.get(ENDPOINT, params=params)
+            async with httpx.AsyncClient(timeout=self._timeout) as c:
+                r = await c.get(ENDPOINT, params=params)
         except httpx.HTTPError as exc:
             raise GroceryProviderError(f"ScraperAPI request failed: {exc}") from exc
         if r.status_code == 401:

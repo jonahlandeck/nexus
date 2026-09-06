@@ -64,7 +64,9 @@ class GroceryProvider(abc.ABC):
     uses_credits: bool = False
 
     @abc.abstractmethod
-    def search(self, query: str, *, force: bool = False) -> list[Product]:
+    async def search(
+        self, query: str, db: object | None = None, *, force: bool = False
+    ) -> list[Product]:
         ...
 
     def search_url(self, query: str) -> str:

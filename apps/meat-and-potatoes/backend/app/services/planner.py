@@ -4,10 +4,12 @@
 """
 from __future__ import annotations
 
+import inspect
 import re
 from typing import Any, Callable
 
 from . import llm
+from ..config import Settings
 from ..schemas import MEAL_PLAN_JSON_SCHEMA
 
 _DESCRIPTORS = {
@@ -124,17 +126,22 @@ def build_messages(
     ]
 
 
-def generate_plan_json(
+async def generate_plan_json(
     profile: dict[str, Any],
     prompt: str,
     days: int = 7,
     meals_per_day: list[str] | None = None,
+    cfg: Settings | None = None,
     _llm: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     meals_per_day = meals_per_day or ["breakfast", "lunch", "dinner"]
     messages = build_messages(profile, prompt, days, meals_per_day)
-    gen = _llm or (lambda m: llm.generate_json(m, schema=MEAL_PLAN_JSON_SCHEMA))
-    plan = gen(messages)
+    if _llm is not None:
+        plan = _llm(messages)
+        if inspect.isawaitable(plan):
+            plan = await plan
+    else:
+        plan = await llm.generate_json(messages, cfg, schema=MEAL_PLAN_JSON_SCHEMA)
     if "days" not in plan or not isinstance(plan["days"], list):
         raise llm.LLMError("Meal plan JSON missing 'days' array.")
     return plan

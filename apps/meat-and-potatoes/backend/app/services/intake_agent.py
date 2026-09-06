@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from . import llm
+from ..config import Settings
 from ..schemas import INTAKE_JSON_SCHEMA
 
 CHECKLIST = [
@@ -58,8 +59,11 @@ def _summarize_profile(profile: dict[str, Any]) -> str:
     return "\n".join(f"- {k}: {v}" for k, v in profile.items())
 
 
-def next_turn(
-    transcript: list[dict[str, str]], profile: dict[str, Any], user_message: str
+async def next_turn(
+    transcript: list[dict[str, str]],
+    profile: dict[str, Any],
+    user_message: str,
+    cfg: Settings | None = None,
 ) -> dict[str, Any]:
     """Run one intake turn. `transcript` is prior [{role, content}] user/assistant pairs."""
     messages: list[dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -72,7 +76,7 @@ def next_turn(
     messages.extend(transcript)
     messages.append({"role": "user", "content": user_message})
 
-    out = llm.generate_json(messages, schema=INTAKE_JSON_SCHEMA)
+    out = await llm.generate_json(messages, cfg, schema=INTAKE_JSON_SCHEMA)
     out.setdefault("assistant_message", "Could you tell me a bit more?")
     out.setdefault("profile_patch", {})
     out.setdefault("missing_fields", [k for k in CHECKLIST if k not in profile])
