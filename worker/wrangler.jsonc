@@ -1,0 +1,29 @@
+{
+  // The Cloudflare Worker that fronts landeck.pro/apps/*
+  //
+  // IMPORTANT: you already created a Worker for this in the Cloudflare dashboard.
+  // Set "name" below to that Worker's exact name so `wrangler deploy` updates it
+  // in place (and takes over its routes). If you'd rather start clean, delete the
+  // dashboard Worker and keep this name.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nexus",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-01-15",
+
+  // Static SPA bundles live here, one dir per app: ./public/apps/<slug>/
+  // `run_worker_first` lets src/index.ts see every request (needed for the
+  // /api/* stubs, the sub-path mount and the SPA fallback).
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+
+  // Claim only the /apps space on the zone; the rest of landeck.pro is untouched.
+  "routes": [
+    { "pattern": "landeck.pro/apps", "zone_name": "landeck.pro" },
+    { "pattern": "landeck.pro/apps/*", "zone_name": "landeck.pro" }
+  ],
+
+  "observability": { "enabled": true }
+}

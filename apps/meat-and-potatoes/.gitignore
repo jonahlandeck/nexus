@@ -1,0 +1,17 @@
+# secrets & local data
+.env
+data/
+backend/data/
+*.db
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# node
+node_modules/
+frontend/dist/
+*.tsbuildinfo
