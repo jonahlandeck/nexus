@@ -38,8 +38,11 @@ Key settings in `.env`:
 
 - `OLLAMA_MODEL` — the Ollama model to use (`qwen2.5:7b-instruct` by default).
 - `MAP_PROVIDER` — how groceries are looked up:
-  - `mock` — canned data, no network, no key. **Start here.**
-  - `scraperapi` — live Walmart data. Requires `SCRAPERAPI_KEY`.
+  - `mock` — canned data, no network, no key. Good for clicking through the UI, but its item
+    IDs are placeholder hashes, **not real Walmart item numbers** — the add-to-cart link will
+    not put anything in a real cart. The Groceries page flags this.
+  - `scraperapi` — live Walmart data with real item IDs. Requires `SCRAPERAPI_KEY`. **Use this
+    if you want a working cart link.**
   - `links` — no lookups at all; each item just gets a Walmart search link. Zero API credits.
 - `SCRAPERAPI_KEY` — paste your key here when you switch to `scraperapi`.
 - `SEARCH_CACHE_TTL_DAYS` — how long a cached search result is reused before spending another
