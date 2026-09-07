@@ -1,0 +1,13 @@
+# Local dev secrets for `pnpm dev` / `pnpm preview`. Copy to .dev.vars (gitignored).
+# In production these come from Cloudflare Secrets Store (see wrangler.jsonc +
+# DEPLOY.md); locally wrangler reads them from this file by binding name.
+
+# openssl rand -base64 32
+AUTH_SECRET=
+
+# Authentik "nexus" provider -> Client Secret (from the Authentik admin UI)
+AUTHENTIK_CLIENT_SECRET=
+
+# Scoped svc-nexus service-account token (Directory -> Tokens in Authentik).
+# NOT the akadmin bootstrap token.
+AUTHENTIK_API_TOKEN=

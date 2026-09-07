@@ -2,108 +2,536 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Jonah Landeck</title>
-  <meta name="description" content="Jonah Landeck — personal site and portfolio.">
+  <meta name="description" content="Jonah Landeck — personal site. Milkdrop music visuals in the browser, powered by Butterchurn.">
+  <meta name="color-scheme" content="dark">
   <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #fbfbf9;
-      --fg: #1a1a1a;
-      --muted: #5b5b5b;
-      --border: #e4e4e0;
-      --accent: #b4530a;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #14140f;
-        --fg: #ececec;
-        --muted: #9a9a95;
-        --border: #2c2c28;
-        --accent: #e8863a;
-      }
-    }
+    :root { --accent: #e8863a; --ui: rgba(12,12,14,.62); --ui-border: rgba(255,255,255,.14); }
     * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
     body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--fg);
-      font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #f0f0ee;
+      font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      -webkit-font-smoothing: antialiased;
     }
-    main {
-      max-width: 46rem;
-      margin: 0 auto;
-      padding: 14vh 1.5rem 6rem;
+    #stage { position: fixed; inset: 0; }
+    #viz { display: block; width: 100%; height: 100%; background: #000; }
+
+    /* --- chrome that fades when idle --- */
+    #ui { position: absolute; inset: 0; pointer-events: none; transition: opacity .4s ease; }
+    #ui.idle { opacity: 0; }
+    #ui > * { pointer-events: auto; }
+
+    #preset-name {
+      position: absolute; left: 14px; top: 12px; right: 14px;
+      max-width: max-content;
+      padding: 6px 10px; border-radius: 7px;
+      background: var(--ui); border: 1px solid var(--ui-border);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      color: #eaeaea; text-shadow: 0 1px 2px #000;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    h1 { font-size: 2rem; margin: 0 0 .5rem; letter-spacing: -0.01em; }
-    p { margin: 0 0 1rem; color: var(--muted); }
-    p.lead { color: var(--fg); }
-    a { color: var(--accent); }
-    section.game {
-      margin-top: 3rem;
-      padding-top: 2rem;
-      border-top: 1px solid var(--border);
+    #preset-name b { color: var(--accent); font-weight: 600; }
+    #preset-name .idx { opacity: .55; margin-left: .5ch; }
+
+    #bar {
+      position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+      display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+      max-width: calc(100% - 20px);
+      padding: 7px; border-radius: 12px;
+      background: var(--ui); border: 1px solid var(--ui-border);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     }
-    section.game h2 {
-      font-size: 1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      margin: 0 0 1rem;
+    #bar button, #bar .filebtn {
+      appearance: none; -webkit-appearance: none;
+      font: inherit; color: #eee; cursor: pointer;
+      background: rgba(255,255,255,.06); border: 1px solid var(--ui-border);
+      border-radius: 8px; padding: 7px 10px; min-width: 34px;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: background .15s, border-color .15s, color .15s;
     }
-    /* htmlgames' embed.js injects an iframe into this container */
-    .game-embed {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
+    #bar button:hover, #bar .filebtn:hover { background: rgba(255,255,255,.13); }
+    #bar button.on { color: #111; background: var(--accent); border-color: var(--accent); }
+    #bar .sep { width: 1px; align-self: stretch; background: var(--ui-border); margin: 2px 3px; }
+    #audio { display: none; height: 30px; margin-top: 4px; width: 100%; }
+    #audio.show { display: block; }
+    #bar .col { display: flex; flex-direction: column; align-items: stretch; flex: 1 1 100%; }
+    #bar select {
+      appearance: none; -webkit-appearance: none;
+      font: inherit; color: #eee; cursor: pointer;
+      background: rgba(255,255,255,.06); border: 1px solid var(--ui-border);
+      border-radius: 8px; padding: 7px 10px; max-width: 220px;
+      transition: background .15s, border-color .15s;
     }
-    .game-embed :is(iframe, canvas, embed, object) {
-      position: absolute;
-      inset: 0;
-      width: 100% !important;
-      height: 100% !important;
-      border: 0;
+    #bar select:hover { background: rgba(255,255,255,.13); }
+    #bar select option { color: #111; }
+
+    /* --- overlays --- */
+    .overlay {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      background: radial-gradient(120% 120% at 50% 40%, rgba(0,0,0,.35), rgba(0,0,0,.82));
+      text-align: center; padding: 24px;
     }
-    footer {
-      max-width: 46rem;
-      margin: 0 auto;
-      padding: 0 1.5rem 4rem;
-      color: var(--muted);
-      font-size: 0.9rem;
+    #poster { cursor: pointer; }
+    #poster .big { font-size: 15px; letter-spacing: .06em; }
+    #poster .sub { opacity: .6; margin-top: 8px; }
+    #drop { display: none; border: 2px dashed var(--accent); background: rgba(232,134,58,.12); }
+    #drop.show { display: grid; }
+    #help { display: none; }
+    #help.show { display: grid; }
+    #help .card {
+      pointer-events: auto;
+      background: var(--ui); border: 1px solid var(--ui-border); border-radius: 12px;
+      padding: 18px 22px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      max-width: 420px; text-align: left;
+    }
+    #help h2 { margin: 0 0 10px; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+    #help dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; }
+    #help dt { color: #fff; }
+    #help dd { margin: 0; opacity: .7; }
+    #help .foot { margin-top: 14px; opacity: .55; font-size: 12px; }
+    #help a { color: var(--accent); }
+
+    #toast {
+      position: absolute; left: 50%; top: 54px; transform: translateX(-50%);
+      padding: 6px 12px; border-radius: 8px;
+      background: var(--ui); border: 1px solid var(--ui-border);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      opacity: 0; transition: opacity .25s; pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+
+    #credit {
+      position: absolute; right: 14px; bottom: 16px;
+      opacity: .4; font-size: 11px; text-shadow: 0 1px 2px #000;
+    }
+    #credit a { color: inherit; }
+
+    @media (max-width: 560px) {
+      #credit { display: none; }
+      #bar button, #bar .filebtn { padding: 8px 9px; }
     }
   </style>
 </head>
 <body>
-  <main>
-    <h1>Hello, I'm Jonah</h1>
-    <p class="lead">
-      I build software. This site is the front door to a handful of things I've
-      made — some are full apps with their own backends, running here as
-      independent services.
-    </p>
-    <p>
-      Reach me at <a href="mailto:jlandeck927@gmail.com">jlandeck927@gmail.com</a>.
-    </p>
+  <div id="stage">
+    <canvas id="viz"></canvas>
 
-    <section class="game">
-      <h2>Downhill Ski</h2>
-      <div class="game-embed">
-        <script src="https://cdn.htmlgames.com/embed.js?game=DownhillSki&amp;bgcolor=white"></script>
+    <div id="ui">
+      <div id="preset-name">loading presets…</div>
+
+      <div id="bar">
+        <button data-act="prev"   title="Previous preset (←)">◀</button>
+        <button data-act="next"   title="Next preset (Space / →)">▶</button>
+        <button data-act="random" title="Random preset (R)">⤮</button>
+        <span class="sep"></span>
+        <button data-act="shuffle" title="Shuffle order (Y)">Shuffle</button>
+        <button data-act="cycle"   title="Auto-cycle presets (A)">Auto</button>
+        <span class="sep"></span>
+        <label class="filebtn" title="Play a local audio file (O)">
+          Open audio<input type="file" id="file" accept="audio/*" hidden>
+        </label>
+        <button data-act="mic" title="Visualize the microphone (M)">Mic</button>
+        <span class="sep"></span>
+        <button data-act="mprev"    title="Previous track (,)">⏮</button>
+        <button data-act="mnext"    title="Next track (.)">⏭</button>
+        <button data-act="mshuffle" title="Shuffle the track list (S)">⇄</button>
+        <select id="tracksel" title="Pick a track">
+          <option value="-1">♪ music</option>
+        </select>
+        <span class="sep"></span>
+        <button data-act="fs"   title="Fullscreen (F)">⤢</button>
+        <button data-act="help" title="Keyboard shortcuts (?)">?</button>
+        <div class="col"><audio id="audio" controls crossorigin="anonymous"></audio></div>
       </div>
-      <p style="margin-top:1rem;font-size:.9rem">
-        Game by <a href="https://www.htmlgames.com/" rel="noopener">HTMLGames</a>.
-        Direct link: <a href="https://cdn.htmlgames.com/DownhillSki/" rel="noopener">cdn.htmlgames.com/DownhillSki</a>.
-      </p>
-    </section>
-  </main>
 
-  <footer>
-    &copy; <span id="y"></span> Jonah Landeck · landeck.pro
-  </footer>
-  <script>document.getElementById("y").textContent = new Date().getFullYear();</script>
+      <div id="toast"></div>
+      <div id="credit">
+        Milkdrop visuals via <a href="https://github.com/jberg/butterchurn" rel="noopener">Butterchurn</a> · landeck.pro
+      </div>
+    </div>
+
+    <div class="overlay" id="poster">
+      <div>
+        <div class="big">▶ &nbsp;click, press a key, or drop a track to start</div>
+        <div class="sub">Jonah Landeck — WebGL Milkdrop visualizer</div>
+      </div>
+    </div>
+
+    <div class="overlay" id="drop"><div class="big">Drop the audio file to play it</div></div>
+
+    <div class="overlay" id="help">
+      <div class="card">
+        <h2>Shortcuts</h2>
+        <dl>
+          <dt>Space&nbsp;/&nbsp;→</dt><dd>next preset</dd>
+          <dt>←</dt><dd>previous preset</dd>
+          <dt>R</dt><dd>random preset</dd>
+          <dt>Y</dt><dd>toggle shuffle</dd>
+          <dt>A</dt><dd>toggle auto-cycle</dd>
+          <dt>↑ / ↓</dt><dd>auto-cycle interval ± 5s</dd>
+          <dt>O</dt><dd>open a local audio file</dd>
+          <dt>M</dt><dd>microphone on / off</dd>
+          <dt>.</dt><dd>next track</dd>
+          <dt>,</dt><dd>previous track</dd>
+          <dt>S</dt><dd>shuffle the track list</dd>
+          <dt>F</dt><dd>fullscreen</dd>
+          <dt>? / H</dt><dd>this panel</dd>
+        </dl>
+        <div class="foot">
+          <span id="pcount"></span> presets · WebGL Milkdrop by
+          <a href="https://github.com/jberg/butterchurn" rel="noopener">Butterchurn</a>.
+          Press <b>?</b> to close.
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="unsupported" style="display:none">
+      <div>
+        <div class="big">This visualizer needs WebGL 2</div>
+        <div class="sub">Try a recent Chrome, Firefox, Edge, or Safari on the desktop.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/butterchurn/isSupported.min.js"></script>
+  <script src="vendor/butterchurn/butterchurn.min.js"></script>
+  <script src="vendor/butterchurn/presets/base.min.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var $ = function (s) { return document.querySelector(s); };
+
+    var canvas = $("#viz");
+    // UMD builds expose the real export under `.default`
+    var BC = (window.butterchurn && (window.butterchurn.default || window.butterchurn)) || null;
+    var isSupportedFn = window.isSupported && (window.isSupported.default || window.isSupported);
+    var supported = BC && ((typeof isSupportedFn === "function") ? isSupportedFn() : true);
+    if (!supported) { $("#unsupported").style.display = "grid"; $("#poster").style.display = "none"; return; }
+
+    // ---- render sizing -------------------------------------------------------
+    var RENDER_SCALE = Math.min(window.devicePixelRatio || 1, 2);
+    function pxW() { return Math.max(1, Math.floor(window.innerWidth * RENDER_SCALE)); }
+    function pxH() { return Math.max(1, Math.floor(window.innerHeight * RENDER_SCALE)); }
+    canvas.width = pxW(); canvas.height = pxH();
+
+    // ---- state -------------------------------------------------------------
+    var audioCtx = null, visualizer = null, running = false;
+    var presets = {}, keys = [], order = [], pos = 0, currentName = null;
+    var shuffle = true, cycling = true, cycleSecs = 20, cycleAt = 0;
+    var mediaElSource = null, micStream = null, micSource = null, activeSource = null;
+    var idleTimer = 0, toastTimer = 0;
+
+    // ---- preset library --------------------------------------------------
+    function mergePresets(obj) {
+      if (!obj) return;
+      for (var k in obj) if (Object.prototype.hasOwnProperty.call(obj, k)) presets[k] = obj[k];
+      rebuildKeys();
+    }
+    function rebuildKeys() {
+      keys = Object.keys(presets).sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+      buildOrder(true);
+      $("#pcount").textContent = keys.length;
+    }
+    function buildOrder(keepCurrent) {
+      order = keys.map(function (_, i) { return i; });
+      if (shuffle) {
+        for (var i = order.length - 1; i > 0; i--) {
+          var j = (Math.random() * (i + 1)) | 0;
+          var t = order[i]; order[i] = order[j]; order[j] = t;
+        }
+      }
+      if (keepCurrent && currentName != null) {
+        var ci = keys.indexOf(currentName);
+        var op = order.indexOf(ci);
+        if (op >= 0) pos = op;
+      }
+    }
+
+    function loadPresetAt(p, blend) {
+      if (!keys.length) return;
+      pos = ((p % order.length) + order.length) % order.length;
+      var name = keys[order[pos]];
+      currentName = name;
+      visualizer.loadPreset(presets[name], blend == null ? 2.7 : blend);
+      var el = $("#preset-name");
+      el.innerHTML = "";
+      el.appendChild(document.createElement("b")).textContent = name;
+      var idx = document.createElement("span");
+      idx.className = "idx";
+      idx.textContent = "(" + (pos + 1) + "/" + order.length + ")";
+      el.appendChild(idx);
+      cycleAt = performance.now() + cycleSecs * 1000;
+    }
+    function step(delta) { loadPresetAt(pos + delta); }
+    function randomPreset() { loadPresetAt((Math.random() * order.length) | 0, 1.0); }
+
+    // ---- audio ----------------------------------------------------------
+    function ensureCtx() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      visualizer = BC.createVisualizer(audioCtx, canvas, {
+        width: canvas.width, height: canvas.height, pixelRatio: 1, textureRatio: 1
+      });
+      visualizer.setRendererSize(canvas.width, canvas.height);
+    }
+    function setSource(node) {
+      if (activeSource === node) return;
+      if (activeSource) { try { visualizer.disconnectAudio(activeSource); } catch (e) {} }
+      activeSource = node;
+      if (node) visualizer.connectAudio(node);
+    }
+    function openFile(file) {
+      if (!file) return;
+      start();
+      var audio = $("#audio");
+      audio.src = URL.createObjectURL(file);
+      audio.classList.add("show");
+      if (!mediaElSource) {
+        mediaElSource = audioCtx.createMediaElementSource(audio);
+        mediaElSource.connect(audioCtx.destination);
+      }
+      setSource(mediaElSource);
+      audio.play().catch(function () {});
+      var title = file.name.replace(/\.[^.]+$/, "");
+      try { visualizer.launchSongTitleAnim(title); } catch (e) {}
+      toast("♪ " + title);
+    }
+    function toggleMic() {
+      if (micStream) {
+        micStream.getTracks().forEach(function (t) { t.stop(); });
+        micStream = micSource = null;
+        setSource(mediaElSource || null);
+        setBtn("mic", false);
+        toast("Mic off");
+        return;
+      }
+      start();
+      navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false } })
+        .then(function (stream) {
+          micStream = stream;
+          micSource = audioCtx.createMediaStreamSource(stream);
+          setSource(micSource);           // note: mic is NOT routed to speakers
+          setBtn("mic", true);
+          toast("Mic on");
+        })
+        .catch(function () { toast("Mic blocked"); });
+    }
+
+    // ---- music playlist ----------------------------------------------
+    // Curated SoundCloud library shipped under site/music/. playlist.json is
+    // { tracks: [{ artist, title, credit, name, src }] }.
+    var playlist = [], mOrder = [], mPos = -1, mShuffle = false;
+
+    function trackLabel(t) {
+      return t.name || ((t.artist ? t.artist + " - " : "") + (t.title || "") + (t.credit ? " (" + t.credit + ")" : ""));
+    }
+    function trackUrl(src) {
+      return src.split("/").map(encodeURIComponent).join("/");
+    }
+    function mBuildOrder(keepCurrent) {
+      var cur = (keepCurrent && mPos >= 0) ? mOrder[mPos] : -1;
+      mOrder = playlist.map(function (_, i) { return i; });
+      if (mShuffle) {
+        for (var i = mOrder.length - 1; i > 0; i--) {
+          var j = (Math.random() * (i + 1)) | 0;
+          var t = mOrder[i]; mOrder[i] = mOrder[j]; mOrder[j] = t;
+        }
+      }
+      if (cur >= 0) { var p = mOrder.indexOf(cur); if (p >= 0) mPos = p; }
+    }
+    function loadPlaylist() {
+      fetch("music/playlist.json", { cache: "no-cache" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          var arr = data && (data.tracks || data);
+          if (!arr || !arr.length) return;
+          playlist = arr;
+          mBuildOrder(false);
+          var sel = $("#tracksel");
+          sel.innerHTML = "";
+          var head = document.createElement("option");
+          head.value = "-1";
+          head.textContent = "♪ " + playlist.length + " tracks";
+          sel.appendChild(head);
+          playlist.forEach(function (t, i) {
+            var o = document.createElement("option");
+            o.value = String(i);
+            o.textContent = trackLabel(t);
+            sel.appendChild(o);
+          });
+        })
+        .catch(function () {});
+    }
+    function playAt(orderPos) {
+      if (!mOrder.length) return;
+      mPos = ((orderPos % mOrder.length) + mOrder.length) % mOrder.length;
+      var track = playlist[mOrder[mPos]];
+      if (!track) return;
+      start();
+      var audio = $("#audio");
+      audio.src = trackUrl(track.src);
+      audio.classList.add("show");
+      if (!mediaElSource) {
+        mediaElSource = audioCtx.createMediaElementSource(audio);
+        mediaElSource.connect(audioCtx.destination);
+      }
+      setSource(mediaElSource);
+      audio.play().catch(function () {});
+      var label = trackLabel(track);
+      try { visualizer.launchSongTitleAnim(label); } catch (e) {}
+      toast("♪ " + label);
+      var sel = $("#tracksel");
+      if (sel) sel.value = String(mOrder[mPos]);
+    }
+    function mStep(delta) {
+      if (!playlist.length) return;
+      if (mPos < 0) playAt(0);
+      else playAt(mPos + delta);
+    }
+    function playTrackIndex(idx) {
+      if (idx < 0 || idx >= playlist.length) return;
+      var p = mOrder.indexOf(idx);
+      if (p < 0) { mOrder.push(idx); p = mOrder.length - 1; }
+      playAt(p);
+    }
+
+    // ---- lifecycle ----------------------------------------------------
+    function start() {
+      ensureCtx();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      if (running) return;
+      running = true;
+      $("#poster").style.display = "none";
+
+      var bp = window.butterchurnPresets && (window.butterchurnPresets.default || window.butterchurnPresets);
+      mergePresets(bp && bp.getPresets());
+      loadPresetAt((Math.random() * order.length) | 0, 0);
+
+      requestAnimationFrame(frame);
+      lazyLoad(["md1", "extra", "extra2"]);
+      kickIdle();
+    }
+    function frame(now) {
+      if (!running) return;
+      visualizer.render();
+      if (cycling && now >= cycleAt) shuffle ? randomPreset() : step(1);
+      requestAnimationFrame(frame);
+    }
+    function lazyLoad(names) {
+      if (!names.length) return;
+      var n = names.shift();
+      var s = document.createElement("script");
+      s.src = "vendor/butterchurn/presets/" + n + ".min.js";
+      s.onload = s.onerror = function () {
+        var g = window["butterchurnPresets" + n.charAt(0).toUpperCase() + n.slice(1)] ||
+                window["butterchurnPresets" + n.toUpperCase()];
+        if (g && g.default) g = g.default;
+        if (g && g.getPresets) mergePresets(g.getPresets());
+        lazyLoad(names);
+      };
+      document.head.appendChild(s);
+    }
+
+    // ---- resize -----------------------------------------------------
+    var rT = 0;
+    window.addEventListener("resize", function () {
+      clearTimeout(rT);
+      rT = setTimeout(function () {
+        canvas.width = pxW(); canvas.height = pxH();
+        if (visualizer) visualizer.setRendererSize(canvas.width, canvas.height);
+      }, 150);
+    });
+
+    // ---- chrome: idle-hide, toast, fullscreen ---------------------
+    function kickIdle() {
+      var ui = $("#ui"); ui.classList.remove("idle");
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(function () {
+        if (!$("#help").classList.contains("show")) ui.classList.add("idle");
+      }, 2600);
+    }
+    ["mousemove", "touchstart", "keydown"].forEach(function (ev) {
+      window.addEventListener(ev, kickIdle, { passive: true });
+    });
+    function toast(msg) {
+      var t = $("#toast"); t.textContent = msg; t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { t.classList.remove("show"); }, 1400);
+    }
+    function toggleFs() {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else $("#stage").requestFullscreen && $("#stage").requestFullscreen();
+    }
+    function setBtn(act, on) {
+      var b = document.querySelector('#bar button[data-act="' + act + '"]');
+      if (b) b.classList.toggle("on", !!on);
+    }
+
+    // ---- controls -------------------------------------------------
+    var ACTS = {
+      prev:   function () { step(-1); },
+      next:   function () { shuffle ? randomPreset() : step(1); },
+      random: randomPreset,
+      shuffle: function () { shuffle = !shuffle; buildOrder(true); setBtn("shuffle", shuffle); toast("Shuffle " + (shuffle ? "on" : "off")); },
+      cycle:  function () { cycling = !cycling; cycleAt = performance.now() + cycleSecs * 1000; setBtn("cycle", cycling); toast("Auto-cycle " + (cycling ? "on (" + cycleSecs + "s)" : "off")); },
+      mic:    toggleMic,
+      mprev:  function () { mStep(-1); },
+      mnext:  function () { mStep(1); },
+      mshuffle: function () { mShuffle = !mShuffle; mBuildOrder(true); setBtn("mshuffle", mShuffle); toast("Track shuffle " + (mShuffle ? "on" : "off")); },
+      fs:     toggleFs,
+      help:   function () { var h = $("#help"); h.classList.toggle("show"); if (h.classList.contains("show")) kickIdle(); }
+    };
+    document.querySelectorAll("#bar button[data-act]").forEach(function (b) {
+      b.addEventListener("click", function () { if (!running && b.dataset.act !== "help") start(); ACTS[b.dataset.act](); });
+    });
+    $("#tracksel").addEventListener("change", function (e) {
+      var idx = parseInt(e.target.value, 10);
+      if (idx >= 0) playTrackIndex(idx);
+      e.target.blur();
+    });
+    $("#audio").addEventListener("ended", function () {
+      if (playlist.length && mPos >= 0) mStep(1);
+    });
+    loadPlaylist();
+    setBtn("shuffle", shuffle); setBtn("cycle", cycling);
+    $("#file").addEventListener("change", function (e) { openFile(e.target.files[0]); });
+    $("#poster").addEventListener("click", start);
+
+    // drag & drop anywhere
+    window.addEventListener("dragover", function (e) { e.preventDefault(); $("#drop").classList.add("show"); });
+    window.addEventListener("dragleave", function (e) { if (e.relatedTarget === null) $("#drop").classList.remove("show"); });
+    window.addEventListener("drop", function (e) {
+      e.preventDefault(); $("#drop").classList.remove("show");
+      var f = e.dataTransfer && e.dataTransfer.files[0];
+      if (f && /^audio\//.test(f.type || "")) openFile(f);
+    });
+
+    // keyboard
+    window.addEventListener("keydown", function (e) {
+      var tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      var k = e.key;
+      if (!running && k !== "?" && k !== "h" && k !== "H") { start(); }
+      switch (k) {
+        case " ": case "ArrowRight": e.preventDefault(); ACTS.next(); break;
+        case "ArrowLeft": ACTS.prev(); break;
+        case "r": case "R": ACTS.random(); break;
+        case "y": case "Y": ACTS.shuffle(); break;
+        case "a": case "A": ACTS.cycle(); break;
+        case "ArrowUp":   cycleSecs = Math.min(120, cycleSecs + 5); toast("Cycle " + cycleSecs + "s"); cycleAt = performance.now() + cycleSecs * 1000; break;
+        case "ArrowDown": cycleSecs = Math.max(5, cycleSecs - 5);  toast("Cycle " + cycleSecs + "s"); cycleAt = performance.now() + cycleSecs * 1000; break;
+        case "o": case "O": $("#file").click(); break;
+        case "m": case "M": ACTS.mic(); break;
+        case ",": e.preventDefault(); ACTS.mprev(); break;
+        case ".": e.preventDefault(); ACTS.mnext(); break;
+        case "s": case "S": ACTS.mshuffle(); break;
+        case "f": case "F": toggleFs(); break;
+        case "h": case "H": case "?": ACTS.help(); break;
+      }
+    });
+  })();
+  </script>
 </body>
 </html>

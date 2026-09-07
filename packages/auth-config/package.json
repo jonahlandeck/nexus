@@ -1,0 +1,21 @@
+{
+  "name": "@nexus/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared Auth.js (Authentik OIDC) config, group helpers, app registry, and Authentik REST client for landeck.pro apps.",
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "@auth/d1-adapter": "^1.11.3",
+    "next-auth": "5.0.0-beta.32"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260906.1",
+    "next": "^16.3.4",
+    "typescript": "^7.0.0"
+  }
+}

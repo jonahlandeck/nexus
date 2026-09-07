@@ -1,0 +1,6 @@
+# JS workspace for the nexus console and its shared packages.
+# Deliberately NOT "apps/*": apps/meat-and-potatoes has its own npm + uv
+# toolchain and stays outside this workspace.
+packages:
+  - "apps/nexus"
+  - "packages/*"

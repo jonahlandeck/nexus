@@ -1,0 +1,7 @@
+# Runtime state — created by docker compose on the VPS, never committed.
+/data/
+/certs/
+/custom-templates/
+.env
+mail.env
+mail.env.bak

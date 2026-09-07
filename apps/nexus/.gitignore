@@ -1,0 +1,13 @@
+# Next.js
+/.next/
+/out/
+
+# OpenNext Cloudflare adapter build output
+/.open-next/
+
+# wrangler / local dev
+.wrangler/
+.dev.vars
+
+# deps
+/node_modules/

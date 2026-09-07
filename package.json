@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "landeck.pro root site (the motherboard). Apps live in apps/<slug>/ and deploy separately.",
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"

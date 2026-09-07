@@ -1,0 +1,25 @@
+{
+  "tracks": [
+    {
+      "artist": "MGMT",
+      "title": "Kids",
+      "credit": "PapaJay Remix",
+      "name": "MGMT - Kids (PapaJay Remix)",
+      "src": "music/soundcloud/MGMT - Kids (PapaJay Remix).mp3"
+    },
+    {
+      "artist": "Flume",
+      "title": "Holdin On",
+      "credit": "Capochino Flip",
+      "name": "Flume - Holdin On (Capochino Flip)",
+      "src": "music/soundcloud/Flume - Holdin On (Capochino Flip).mp3"
+    },
+    {
+      "artist": "Tove Lo",
+      "title": "Habits",
+      "credit": "VIGGY FLIP",
+      "name": "Tove Lo - Habits (VIGGY FLIP)",
+      "src": "music/soundcloud/Tove Lo - Habits (VIGGY FLIP).mp3"
+    }
+  ]
+}

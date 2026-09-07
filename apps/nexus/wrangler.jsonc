@@ -1,0 +1,78 @@
+{
+  // nexus.landeck.pro — the account console. Next.js built with the OpenNext
+  // Cloudflare adapter (@opennextjs/cloudflare), deployed as its own Worker.
+  //
+  // One-time setup and the Secrets Store / D1 / DNS steps are in DEPLOY.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nexus-console",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-06",
+  // nodejs_compat: OpenNext needs Node APIs. global_fetch_strictly_public:
+  // route same-zone subrequests (auth.landeck.pro, served only via the tunnel)
+  // through Cloudflare's front door instead of a nonexistent zone origin.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // OpenNext requires a self-reference service binding.
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "nexus-console" }
+  ],
+
+  // Its own subdomain (SSO comes from Authentik, not shared cookies).
+  // custom_domain: true -> `wrangler deploy` provisions the DNS record + edge
+  // cert for this hostname automatically. No manual DNS step. The root site's
+  // "landeck.pro/*" route is a different hostname, so they don't collide.
+  "routes": [
+    { "pattern": "nexus.landeck.pro", "custom_domain": true }
+  ],
+
+  // Auth.js D1 adapter (users/accounts). Create once:
+  //   npx wrangler d1 create nexus
+  // then paste database_id here and apply migrations (see DEPLOY.md).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nexus",
+      "database_id": "9203437d-ac63-462e-9afd-e2491b72c805",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Secrets from Cloudflare Secrets Store. store_id below is this account's
+  // `default_secrets_store` (free tier = 1 store per account; it already
+  // existed). The three secrets still need their VALUES set — see DEPLOY.md.
+  // Read in code with `await env.AUTH_SECRET.get()`.
+  //   AUTHENTIK_API_TOKEN = the scoped svc-nexus token, NOT the akadmin token.
+  "secrets_store_secrets": [
+    {
+      "binding": "AUTH_SECRET",
+      "store_id": "9d1ea62f351840e890235f03bee12175",
+      "secret_name": "nexus-auth-secret"
+    },
+    {
+      "binding": "AUTHENTIK_CLIENT_SECRET",
+      "store_id": "9d1ea62f351840e890235f03bee12175",
+      "secret_name": "nexus-client-secret"
+    },
+    {
+      "binding": "AUTHENTIK_API_TOKEN",
+      "store_id": "9d1ea62f351840e890235f03bee12175",
+      "secret_name": "nexus-authentik-api-token"
+    }
+  ],
+
+  // Non-secret config.
+  "vars": {
+    "AUTHENTIK_CLIENT_ID": "nexus",
+    "AUTHENTIK_ISSUER": "https://auth.landeck.pro/application/o/nexus/",
+    "AUTHENTIK_API_URL": "https://auth.landeck.pro/api/v3",
+    "AUTH_URL": "https://nexus.landeck.pro",
+    "AUTH_TRUST_HOST": "true"
+  },
+
+  "observability": { "enabled": true }
+}

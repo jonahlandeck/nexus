@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+}
+
+/* System-native, neutral. No component library. */
+@layer base {
+  body {
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+      Arial, sans-serif;
+  }
+}

@@ -217,12 +217,24 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# --- macOS ---
+.DS_Store
+
 # --- Node / Cloudflare Worker ---
 node_modules/
 .wrangler/
 .dev.vars
+.pnpm-store/
+
+# --- OpenNext build output (apps/nexus) ---
+.open-next/
 
 # --- Python Worker (pywrangler), any app ---
 python_modules/
 .venv-workers/
 apps/*/backend/uv.lock
+
+# --- Local media downloads (yt-dlp, etc.) ---
+# Only the top-level source library is ignored; the curated, size-limited
+# subset published with the site lives in site/music/ and IS tracked.
+/music/
